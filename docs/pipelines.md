@@ -3,72 +3,58 @@
 [id="customizing-the-config-file_{context}"]
 = Customizing the `config.yaml` file
 
-Use this procedure to customize the `config.yaml` file before integrating products and external services. Customizing this file ensures that your integrations and preferences are preserved during installation.
+Customize the `config.yaml` file before integrating external products and services to preserve your integration settings during installation.
 
 .Prerequisites
 
-* You have access to the OpenShift Web Console.
-
-* You plan to integrate at least one external product or service (For example, {RHACSShortName} or Quay).
-
-* (Optional) Forked software catalog repository URL. {ProductShortName} provides a catalog of software templates that help developers scaffold applications. To customize these templates, fork the repository before installation.
-
-.. In your browser, go to the link:https://github.com/redhat-appstudio/tssc-sample-templates[{ProductShortName} software catalog repository].
-
-.. Click *Fork* to fork the repository.
-
-... Uncheck the box labeled *Copy the `main` branch only*.
-
-.. When the fork is created, copy its URL and save it in the `private.env` file.
-
-.. In the forked repository, click *main* to open the branch/tag dropdown.
-
-.. Under *Tags*, select the release that matches your {ProductShortName} version.
+* You have access to the OpenShift web console.
+* You plan to integrate at least one external product or service (for example, {RHACSShortName} or Quay).
+* (Optional) You forked the software catalog repository. {ProductShortName} includes a catalog of templates to help developers scaffold applications. Fork this repository if you plan to customize these templates:
+.. In your browser, open the link:https://github.com/redhat-appstudio/tssc-sample-templates[{ProductShortName} software catalog repository].
+.. Click *Fork*.
+... Clear the *Copy the `main` branch only* check box.
+.. After creating the fork, copy the URL and save it in the `private.env` file.
+.. In your forked repository, click the branch/tag dropdown (default is *main*).
+.. Select the release tag that matches your {ProductShortName} version under the *Tags* section.
 +
 [NOTE]
 ====
-Update your fork periodically to include changes from the upstream repository.
+Update your fork periodically to incorporate upstream changes.
 ====
 
 .Procedure
 
-. In the OpenShift console, switch to the *Administrator* perspective.
-
-. Go to *Workloads* > *ConfigMaps*.
-
-. From the Project drop down list, select {ProductShortName}.
-
-. Open the `rhtap-cli-config` ConfigMap.
-
-. Select the *YAML* view and navigate to where `config.yaml` parameters are defined.
-
+. Log in to the OpenShift web console and switch to the *Administrator* perspective.
+. Click *Workloads* > *ConfigMaps*.
+. From the *Project* dropdown menu, select `{ProductShortName}`.
+. Click to open the `rhtap-cli-config` ConfigMap.
+. Select the *YAML* tab and navigate to the section defining the `config.yaml` parameters.
 +
 [NOTE]
 ====
-* To avoid reinstalling operator subscriptions already present on your cluster, set `manageSubscription`: `false`.
+* Set `manageSubscription` to control operator subscription installations:
+** `true` (default): The installer manages operator subscriptions.
+** `false`: Skips installation of operators already present in your cluster.
 
-** `manageSubscription`: `true` (default): The installer manages and installs all required operator subscriptions.
-** `manageSubscription`: `false`: The installer skips installing required operator subscriptions.
-
-** Ensure that existing operators are link:https://docs.redhat.com/en/documentation/red_hat_trusted_application_pipeline/{ProductVersion}/html/release_notes_for_red_hat_trusted_application_pipeline_1.5/con_support-matrix_default[compatible with {ProductShortName}]. Incompatible versions may cause installation failure.
+* Ensure existing operators are compatible with your {ProductShortName} version. Review compatibility details in the link:https://docs.redhat.com/en/documentation/red_hat_trusted_application_pipeline/{ProductVersion}/html/release_notes_for_red_hat_trusted_application_pipeline_1.5/con_support-matrix_default[compatibility matrix].
 ====
 
 [discrete]
-== sdf
-The config.yaml file is structured under a main tssc object. This object has the following key attributes:
+== Structure of the `config.yaml` file
 
-* `namespace`: Specifies the default namespace used by the installer, typically set to tssc. This namespace acts as the primary operational area for the installation process.
+The `config.yaml` file is structured under the main `tssc` object with these key attributes:
 
-* `settings`: Defines the settings of the deployment. This can control a wide set of properties.
-
-* `products`: Defines the features or products to be deployed by the installer. Each product is identified by a unique name and a set of properties.
-
-* `dependencies`: Specifies dependencies rolled out by the installer in a specific order defined in the configuration file.
+* `namespace`: Defines the default installation namespace (typically `tssc`), serving as the primary operational area.
+* `settings`: Controls global deployment settings and properties.
+* `products`: Lists products and features for deployment, each identified by a unique name with associated properties.
+* `dependencies`: Specifies dependencies that the installer deploys in the order defined in the configuration file.
 
 [discrete]
 == Customizing the `tssc.products` section
 
-. To use a custom software catalog, set the `catalogURL`:
+You can customize products within the `tssc.products` section as follows:
+
+. To specify a custom software catalog URL:
 +
 [source,yaml]
 ----
@@ -77,25 +63,25 @@ developerHub:
     catalogURL: https://github.com/<your-org>/tssc-sample-templates/blob/release-v1.6.x/all.yaml
 ----
 
-. To disable automatic installation of components that are already integrated externally:
+. To disable automatic installation for products integrated externally:
 +
 [source,yaml]
 ----
 advancedClusterSecurity:
-  enabled: &rhacsEnabled false
-  namespace: &rhacsNamespace tssc-acs
+  enabled: false
+  namespace: tssc-acs
 
 quay:
-  enabled: &quayEnabled false
-  namespace: &quayNamespace tssc-quay
+  enabled: false
+  namespace: tssc-quay
 ----
 +
 [NOTE]
 ====
-If you integrate third-party or pre-existing services but do not update the `config.yaml`, the installer still provisions default components. To avoid unintended overrides, update the `config.yaml` to reflect your integration strategy.
+If external integrations are not correctly reflected in the `config.yaml`, the installer deploys default components. Update the file to prevent unintended provisioning.
 ====
 
-. To enable the RBAC plugin in Developer Hub, configure the `RBAC` property:
+. To enable role-based access control (RBAC) for Developer Hub:
 +
 [source,yaml]
 ----
@@ -111,24 +97,13 @@ developerHub:
 +
 [NOTE]
 ====
-If `adminUsers` or `orgs` are omitted, the installer uses the GitHub credentials configured during integration.
+If you do not define `adminUsers` or `orgs`, the installer defaults to GitHub credentials specified during integration.
 ====
 
-. To use a custom namespace instead of the default one, configure the `namespacePrefixes` property in the `redhatDeveloperHub` section of the `config.yaml` file. By default, {ProductShortName} creates four namespaces during installation:
+. To define custom namespace prefixes instead of default namespaces, configure `namespacePrefixes`. By default, {ProductShortName} creates these four namespaces during installation:
 
-* `tssc-app-ci`: For CI pipeline workloads
-* `tssc-app-development`, `tssc-app-stage`, and `tssc-app-prod`: For development, staging, and prod deployments
-+
-You can customize the prefixes for these namespaces and define additional namespace sets by using the `namespacePrefixes` property. For example, you can configure custom prefixes to generate namespaces such as `my_prefix1-app-ci`, `my_prefix1-app-development`, `my_prefix1-app-stage`, and `my_prefix1-app-prod`.
+* `tssc-app-ci`: CI pipeline workloads
+* `tssc-app-development`, `tssc-app-stage`, and `tssc-app-prod`: Development, staging, and production workloads
 
 +
-[source,yaml]
-----
-developerHub:
-  namespacePrefixes:
-    - my_prefix1
-    - my_prefix2
-----
-
-
-. After you complete all necessary changes, select *Save*.
+You can use custom
