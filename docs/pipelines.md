@@ -1,58 +1,45 @@
 # Gitops Pipelines
 
-#:_mod-docs-content-type: PROCEDURE
-
 [id="customizing-the-config-file_{context}"]
 = Customizing the `config.yaml` file
 
-Use this procedure to customize the `config.yaml` file before integrating products and external services. Customizing this file ensures that your integrations and preferences are preserved during installation. 
+Use this procedure to customize the `config.yaml` file before integrating products and external services. Customizing this file ensures that your integrations and preferences are preserved during installation.
 
-.Prerequisites
+== Prerequisites
 
 * You have access to the OpenShift Web Console.
-
-* You plan to integrate at least one external product or service (For example, {RHACSShortName} or Quay).
-
-* (Optional) Forked software catalog repository URL. {ProductShortName} provides a catalog of software templates that help developers scaffold applications. To customize these templates, fork the repository before installation.
+* You plan to integrate at least one external product or service. For example, {RHACSShortName} or Quay.
+* (Optional) You have forked the software catalog repository. {ProductShortName} uses this catalog to scaffold developer applications.
 
 .. In your browser, go to the link:https://github.com/redhat-appstudio/tssc-sample-templates[{ProductShortName} software catalog repository].
-
-.. Click *Fork* to fork the repository.
-
-... Uncheck the box labeled *Copy the `main` branch only*.
-
-.. When the fork is created, copy its URL and save it in the `private.env` file.
-
-.. In the forked repository, click *main* to open the branch/tag dropdown.
-
+.. Click *Fork*.
+... Clear the checkbox labeled *Copy the `main` branch only*.
+.. After the fork is created, copy its URL and save it in the `private.env` file.
+.. In the forked repository, click *main* to open the branch or tag dropdown.
 .. Under *Tags*, select the release that matches your {ProductShortName} version.
-+
+
 [NOTE]
 ====
-Update your fork periodically to include changes from the upstream repository.
+Update your fork regularly to include changes from the upstream repository.
 ====
 
-.Procedure
+== Procedure
 
 . In the OpenShift console, switch to the *Administrator* perspective.
-
 . Go to *Workloads* > *ConfigMaps*.
-
-. From the Project drop down list, select {ProductShortName}.
-
+. From the *Project* list, select the `{ProductShortName}` namespace.
 . Open the `rhtap-cli-config` ConfigMap.
+. Select the *YAML* view and locate the section that defines `config.yaml` parameters.
 
-. Select the *YAML* view and navigate to where `config.yaml` parameters are defined.
 [[managesubscription-note]]
-+
 [NOTE]
 ====
-* If your cluster already includes the required subscriptions or operators, you can prevent the installer from creating new ones by setting the `manageSubscription` property to `false`.
+To avoid reinstalling operator subscriptions already present on your cluster, set `manageSubscription: false`.
 
-** `manageSubscription: true` (default): The installer manages and installs all required operator subscriptions.
-* `manageSubscription: false`: The installer skips installing required operator subscriptions because it assumes they already exist on the cluster.
+* `manageSubscription: true` (default): The installer manages and installs all required operator subscriptions.
+* `manageSubscription: false`: The installer skips installing required operator subscriptions.
 
-** Ensure that the pre-installed operators are link:https://docs.redhat.com/en/documentation/red_hat_trusted_application_pipeline/{ProductVersion}/html/release_notes_for_red_hat_trusted_application_pipeline_1.5/con_support-matrix_default[compatible with {ProductShortName}]. Incompatible versions or configurations may cause the installation to fail.
+Ensure that existing operators are link:https://docs.redhat.com/en/documentation/red_hat_trusted_application_pipeline/{ProductVersion}/html/release_notes_for_red_hat_trusted_application_pipeline_1.5/con_support-matrix_default[compatible with {ProductShortName}]. Incompatible versions may cause installation failure.
 ====
 
 . Update the following fields as needed:
@@ -61,62 +48,64 @@ Update your fork periodically to include changes from the upstream repository.
 +
 [source,yaml]
 ----
-redhatDeveloperHub:
+developerHub:
   properties:
-    catalogURL: https://github.com/<your-org>/tssc-sample-templates/blob/releases/all.yaml
+    catalogURL: https://github.com/<your-org>/tssc-sample-templates/blob/release-v1.6.x/all.yaml
 ----
 
-.. To disable installation of components you've integrated externally (for example, ACS and Quay):
+.. To disable automatic installation of components that are already integrated externally:
 +
 [source,yaml]
 ----
-redhatAdvancedClusterSecurity:
+advancedClusterSecurity:
   enabled: &rhacsEnabled false
-  namespace: &rhacsNamespace rhtap-rhacs
+  namespace: &rhacsNamespace tssc-acs
 
-redHatQuay:
+quay:
   enabled: &quayEnabled false
-  namespace: &quayNamespace rhtap-quay
+  namespace: &quayNamespace tssc-quay
 ----
 +
 [NOTE]
 ====
-If you try to integrate outside products or pre-existing instances, but do not customize `config.yaml`, {ProductName} still installs and uses its default products. You must customize `config.yaml` for your `rhtap-cli integration` commands to take effect. However, if you do not customize `config.yaml` for your `rhtap-cli integration`, the installer deploys the product and overrides the existing integrations.
+If you integrate third-party or pre-existing services but do not update the `config.yaml`, the installer still provisions default components. To avoid unintended overrides, update the `config.yaml` to reflect your integration strategy.
 ====
 
 [[rbac-plugin]]
-.. To enable the RBAC plugin in Developer Hub, configure the `RBAC` property in the `redhatDeveloperHub` section. 
+.. To enable the RBAC plugin in Developer Hub, configure the `RBAC` property:
 +
 [source,yaml]
 ----
+developerHub:
   RBAC:
-    enabled: true # Enables the RBAC feature.
-    adminUsers: # GitHub usernames that should have administrator access.
+    enabled: true
+    adminUsers:
       - yourGitHubUsername
       - anotherGitHubAdmin
-    orgs: # GitHub organizations whose members are imported into the Developer Hub catalog with access roles.
+    orgs:
       - your-github-org
 ----
 +
 [NOTE]
 ====
-If you omit `adminUsers` or `orgs`, the installer defaults to the GitHub user and organization that were configured when integrating the GitHub application.
+If `adminUsers` or `orgs` are omitted, the installer uses the GitHub credentials configured during integration.
 ====
 
 [[customize-namespaces]]
-.. To use a custom namespace instead of the default one, configure the `namespacePrefixes` property in the `redhatDeveloperHub` section of the `config.yaml` file. By default, {ProductShortName} creates four namespaces during installation:
-
-** `rhtap-app-ci`: For CI pipeline workloads
-** `rhtap-app-development`, `rhtap-app-stage`, and `rhtap-app-prod`: For development, staging, and prod deployments
-+
-You can customize the prefixes for these namespaces and define additional namespace sets by using the `namespacePrefixes` property. For example, you can configure custom prefixes to generate namespaces such as `my_prefix1-app-ci`, `my_prefix1-app-development`, `my_prefix1-app-stage`, and `my_prefix1-app-prod`.
+.. To customize the default namespace prefixes for your environments:
 +
 [source,yaml]
 ----
-redhatDeveloperHub:
+developerHub:
   namespacePrefixes:
     - my_prefix1
     - my_prefix2
 ----
++
+{ProductShortName} generates the following namespaces by default:
+* `tssc-app-ci` for CI workloads
+* `tssc-app-development`, `tssc-app-stage`, and `tssc-app-prod` for deployment stages
 
-. After you complete all necessary changes, select *Save*.
+Using the `namespacePrefixes` property, you can generate custom environments such as `my_prefix1-app-ci`, `my_prefix1-app-development`, and so on.
+
+. After making your changes, click *Save*.
